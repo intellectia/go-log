@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"sync"
 	"time"
@@ -123,8 +124,15 @@ func NewLogger(config *Config) *Logger {
 		}),
 	)
 
+	// Create a zapcore.Core for stdout
+	consoleCore := zapcore.NewCore(
+		zapcore.NewJSONEncoder(encoderConfig),
+		zapcore.AddSync(zapcore.Lock(os.Stdout)),
+		zapcore.DebugLevel, // or whichever minimum level you want to be printed to console
+	)
+
 	// Combine them together
-	core := zapcore.NewTee(infoCore, errorCore)
+	core := zapcore.NewTee(infoCore, errorCore, consoleCore)
 
 	// Create a zap logger with the combined core
 	zlog := zap.New(core)
