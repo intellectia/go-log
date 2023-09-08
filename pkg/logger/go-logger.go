@@ -110,13 +110,17 @@ func NewLogger(config *Config) *Logger {
 	infoCore := zapcore.NewCore(
 		zapcore.NewJSONEncoder(encoderConfig),
 		zapcore.AddSync(infoLogWriter),
-		zapcore.InfoLevel,
+		zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
+			return lvl >= zapcore.DebugLevel && lvl <= zapcore.WarnLevel
+		}),
 	)
 
 	errorCore := zapcore.NewCore(
 		zapcore.NewJSONEncoder(encoderConfig),
 		zapcore.AddSync(errorLogWriter),
-		zapcore.ErrorLevel,
+		zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
+			return lvl >= zapcore.ErrorLevel
+		}),
 	)
 
 	// Combine them together
