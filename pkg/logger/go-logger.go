@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"runtime"
 	"sync"
 	"time"
 
@@ -30,8 +31,11 @@ func Init(config *Config) {
 	})
 }
 
-func zapErrorWithStack(err error) zap.Field {
-	return zap.String("error", fmt.Sprintf("%v, stacktrace: %+v", err, err))
+func zapErrorWithStack(err error) (msg zap.Field, stack zap.Field) {
+	// Get the stack trace
+	buf := make([]byte, 1024)
+	n := runtime.Stack(buf, false) // false for all goroutines, true for current goroutine
+	return zap.String("error", err.Error()), zap.String("stacktrace", string(buf[:n]))
 }
 
 func Info(msg string, tags ...zap.Field) {
@@ -129,7 +133,9 @@ func (l *Logger) Info(msg string, tags ...zap.Field) {
 }
 
 func (l *Logger) Error(msg string, err error, tags ...zap.Field) {
-	l.zap.Error(msg, append(tags, zapErrorWithStack(err))...)
+	errMsg, errStack := zapErrorWithStack(err)
+	allFields := append(tags, zap.String("error", err.Error()), errMsg, errStack)
+	l.zap.Error(msg, allFields...)
 }
 
 func (l *Logger) Debug(msg string, tags ...zap.Field) {
@@ -152,15 +158,16 @@ func (l *Logger) Infof(msg string, args ...interface{}) {
 
 func (l *Logger) Errorf(format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
-	var err error
+	var stackErr error
 	for _, arg := range args {
 		if e, ok := arg.(error); ok {
-			err = e
+			stackErr = e
 			break
 		}
 	}
-	if err != nil {
-		l.zap.Error(msg, zapErrorWithStack(err))
+	if stackErr != nil {
+		errMsg, errStack := zapErrorWithStack(stackErr)
+		l.zap.Error(msg, errMsg, errStack)
 	} else {
 		l.zap.Error(msg)
 	}
