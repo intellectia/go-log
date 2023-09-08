@@ -90,16 +90,6 @@ func beijingTimeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 	enc.AppendString(t.In(beijingLocation).Format(time.RFC3339Nano))
 }
 
-func getEncoderConfig(config *Config) zapcore.EncoderConfig {
-	logMode := config.Mode
-	if logMode == "prod" {
-		return zap.NewProductionEncoderConfig()
-	}
-	consoleEncoderConfig := zap.NewDevelopmentEncoderConfig()
-	consoleEncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	return consoleEncoderConfig
-}
-
 func NewLogger(config *Config) *Logger {
 	// Create a lumberjack logger (from "gopkg.in/natefinch/lumberjack.v2") for file rotation.
 	infoLogWriter := &lumberjack.Logger{
@@ -135,11 +125,9 @@ func NewLogger(config *Config) *Logger {
 		}),
 	)
 
-	consoleEncoderConfig := getEncoderConfig(config)
-
 	// Create a zapcore.Core for stdout
 	consoleCore := zapcore.NewCore(
-		zapcore.NewConsoleEncoder(consoleEncoderConfig),
+		zapcore.NewConsoleEncoder(encoderConfig),
 		zapcore.AddSync(zapcore.Lock(os.Stdout)),
 		zapcore.DebugLevel, // or whichever minimum level you want to be printed to console
 	)
