@@ -185,6 +185,10 @@ func (l *Logger) Fatalf(msg string, args ...interface{}) {
 	l.zap.Fatal(fmt.Sprintf(msg, args...))
 }
 
+func GetInstance() *Logger {
+	return logInstance
+}
+
 // ... Implement similar functions for other log levels like Debug, Warn, Fatal ...
 
 // Cleanup should be called to ensure all log messages are flushed
