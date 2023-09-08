@@ -30,12 +30,16 @@ func Init(config *Config) {
 	})
 }
 
+func zapErrorWithStack(err error) zap.Field {
+	return zap.String("error", fmt.Sprintf("%v, stacktrace: %+v", err, err))
+}
+
 func Info(msg string, tags ...zap.Field) {
 	logInstance.Info(msg, tags...)
 }
 
-func Error(msg string, tags ...zap.Field) {
-	logInstance.Error(msg, tags...)
+func Error(msg string, err error, tags ...zap.Field) {
+	logInstance.Error(msg, err, tags...)
 }
 
 func Debug(msg string, tags ...zap.Field) {
@@ -56,8 +60,8 @@ func Infof(msg string, args ...interface{}) {
 }
 
 // Formatted logging for Error level
-func Errorf(msg string, args ...interface{}) {
-	logInstance.Error(fmt.Sprintf(msg, args...))
+func Errorf(format string, args ...interface{}) {
+	logInstance.Errorf(format, args...)
 }
 
 // Formatted logging for Debug level
@@ -124,8 +128,8 @@ func (l *Logger) Info(msg string, tags ...zap.Field) {
 	l.zap.Info(msg, tags...)
 }
 
-func (l *Logger) Error(msg string, tags ...zap.Field) {
-	l.zap.Error(msg, tags...)
+func (l *Logger) Error(msg string, err error, tags ...zap.Field) {
+	l.zap.Error(msg, append(tags, zapErrorWithStack(err))...)
 }
 
 func (l *Logger) Debug(msg string, tags ...zap.Field) {
@@ -146,8 +150,20 @@ func (l *Logger) Infof(msg string, args ...interface{}) {
 	l.zap.Info(fmt.Sprintf(msg, args...))
 }
 
-func (l *Logger) Errorf(msg string, args ...interface{}) {
-	l.zap.Error(fmt.Sprintf(msg, args...))
+func (l *Logger) Errorf(format string, args ...interface{}) {
+	msg := fmt.Sprintf(format, args...)
+	var err error
+	for _, arg := range args {
+		if e, ok := arg.(error); ok {
+			err = e
+			break
+		}
+	}
+	if err != nil {
+		l.zap.Error(msg, zapErrorWithStack(err))
+	} else {
+		l.zap.Error(msg)
+	}
 }
 
 func (l *Logger) Debugf(msg string, args ...interface{}) {
