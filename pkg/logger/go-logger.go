@@ -95,7 +95,9 @@ func getEncoderConfig(config *Config) zapcore.EncoderConfig {
 	if logMode == "prod" {
 		return zap.NewProductionEncoderConfig()
 	}
-	return zap.NewDevelopmentEncoderConfig()
+	consoleEncoderConfig := zap.NewDevelopmentEncoderConfig()
+	consoleEncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	return consoleEncoderConfig
 }
 
 func NewLogger(config *Config) *Logger {
