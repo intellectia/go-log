@@ -19,6 +19,7 @@ type Logger struct {
 type Config struct {
 	InfoLogPath  string
 	ErrorLogPath string
+	Mode         string
 }
 
 var (
@@ -89,6 +90,14 @@ func beijingTimeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 	enc.AppendString(t.In(beijingLocation).Format(time.RFC3339Nano))
 }
 
+func getEncoderConfig(config *Config) zapcore.EncoderConfig {
+	logMode := config.Mode
+	if logMode == "prod" {
+		return zap.NewProductionEncoderConfig()
+	}
+	return zap.NewDevelopmentEncoderConfig()
+}
+
 func NewLogger(config *Config) *Logger {
 	// Create a lumberjack logger (from "gopkg.in/natefinch/lumberjack.v2") for file rotation.
 	infoLogWriter := &lumberjack.Logger{
@@ -124,9 +133,11 @@ func NewLogger(config *Config) *Logger {
 		}),
 	)
 
+	consoleEncoderConfig := getEncoderConfig(config)
+
 	// Create a zapcore.Core for stdout
 	consoleCore := zapcore.NewCore(
-		zapcore.NewConsoleEncoder(encoderConfig),
+		zapcore.NewConsoleEncoder(consoleEncoderConfig),
 		zapcore.AddSync(zapcore.Lock(os.Stdout)),
 		zapcore.DebugLevel, // or whichever minimum level you want to be printed to console
 	)
